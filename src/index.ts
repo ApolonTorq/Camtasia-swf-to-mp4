@@ -20,7 +20,7 @@
  * ```
  *
  * @requires Java JDK 8+ (for JPEXS decompiler)
- * @requires FFmpeg (bundled via ffmpeg-static)
+ * @requires FFmpeg (bundled via @ffmpeg-installer/ffmpeg)
  */
 
 // Export core SWF processing functions

@@ -28,7 +28,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { spawn } from 'child_process'
-import ffmpegStatic from 'ffmpeg-static'
+import ffmpeg from '@ffmpeg-installer/ffmpeg'
 // Removed swf-analyzer dependency - using direct FFmpeg detection
 import { extractSWF } from '../../src/tools/extractor'
 
@@ -57,16 +57,16 @@ describe('Complete SWF to MP4 Workflow Tests', () => {
   const checkFFmpegAvailability = (): Promise<boolean> => {
     return new Promise((resolve) => {
       // Use the bundled FFmpeg binary if available
-      const ffmpegPath = ffmpegStatic || 'ffmpeg'
-      const ffmpeg = spawn(ffmpegPath, ['-version'])
-      ffmpeg.on('close', (code) => resolve(code === 0))
-      ffmpeg.on('error', () => resolve(false))
+      const ffmpegPath = ffmpeg.path || 'ffmpeg'
+      const ffmpegProcess = spawn(ffmpegPath, ['-version'])
+      ffmpegProcess.on('close', (code: number) => resolve(code === 0))
+      ffmpegProcess.on('error', () => resolve(false))
     })
   }
 
   const detectSWFFrameRate = async (swfFile: string): Promise<number> => {
     return new Promise((resolve) => {
-      const ffmpegPath = ffmpegStatic || 'ffmpeg'
+      const ffmpegPath = ffmpeg.path || 'ffmpeg'
       const ffmpegProcess = spawn(ffmpegPath, ['-i', swfFile], {
         stdio: ['ignore', 'ignore', 'pipe']
       })
@@ -163,22 +163,22 @@ describe('Complete SWF to MP4 Workflow Tests', () => {
       ])
 
       // Use the bundled FFmpeg binary
-      const ffmpegPath = ffmpegStatic || 'ffmpeg'
+      const ffmpegPath = ffmpeg.path || 'ffmpeg'
       console.log(`    🔧 FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`)
-      const ffmpeg = spawn(ffmpegPath, ffmpegArgs)
-      
+      const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs)
+
       let stderr = ''
       let stdout = ''
-      
-      ffmpeg.stdout?.on('data', (data) => {
+
+      ffmpegProcess.stdout?.on('data', (data: any) => {
         stdout += data.toString()
       })
-      
-      ffmpeg.stderr?.on('data', (data) => {
+
+      ffmpegProcess.stderr?.on('data', (data: any) => {
         stderr += data.toString()
       })
-      
-      ffmpeg.on('close', (code) => {
+
+      ffmpegProcess.on('close', (code: number) => {
         if (code === 0) {
           resolve()
         } else {
@@ -189,7 +189,7 @@ describe('Complete SWF to MP4 Workflow Tests', () => {
         }
       })
 
-      ffmpeg.on('error', (err) => {
+      ffmpegProcess.on('error', (err: any) => {
         reject(new Error(`Failed to start FFmpeg: ${err.message}`))
       })
     })
@@ -336,7 +336,7 @@ describe('Complete SWF to MP4 Workflow Tests', () => {
       console.log('================')
       console.log('✅ SWF file validation - WORKING')
       console.log('✅ JPEXS extraction - WORKING (requires Java)')
-      console.log('✅ FFmpeg MP4 generation - WORKING (bundled with ffmpeg-static)')
+      console.log('✅ FFmpeg MP4 generation - WORKING (bundled with @ffmpeg-installer/ffmpeg)')
       console.log('\n📁 Test Files:')
       testFiles.forEach(file => {
         const filePath = path.join(fixturesDir, file)

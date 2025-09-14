@@ -16,7 +16,7 @@
  * characteristics compared to general Flash animations.
  *
  * @requires Java JDK 8+ (for JPEXS)
- * @requires FFmpeg (bundled via ffmpeg-static)
+ * @requires FFmpeg (bundled via @ffmpeg-installer/ffmpeg)
  */
 
 import * as fs from 'fs'
@@ -30,7 +30,7 @@ import { getFFmpegPath, getFFprobePath, validatePlatformSupport } from '../utils
  * Initialize fluent-ffmpeg with cross-platform FFmpeg binaries
  *
  * This function configures fluent-ffmpeg to use the bundled FFmpeg binaries
- * from ffmpeg-static, with proper cross-platform path detection.
+ * from @ffmpeg-installer/ffmpeg, with proper cross-platform path detection.
  * This is crucial for the FFmpeg fallback audio extraction functionality.
  *
  * @returns True if FFmpeg was successfully configured, false otherwise

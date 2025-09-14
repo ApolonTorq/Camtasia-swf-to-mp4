@@ -16,7 +16,7 @@
  * - Cleanup of temporary files
  *
  * @requires Java JDK 8+ (for JPEXS extraction)
- * @requires FFmpeg (bundled via ffmpeg-static)
+ * @requires FFmpeg (bundled via @ffmpeg-installer/ffmpeg)
  */
 
 import * as fs from 'fs'
@@ -356,11 +356,19 @@ const detectSWFFrameRate = async (swfFile: string): Promise<number> => {
 
     let stderrData = ''
 
+    // Timeout after 30 seconds (increased for heavy test loads)
+    const timeoutId = setTimeout(() => {
+      ffmpegProcess.kill()
+      console.log(`Warning: FFmpeg frame rate detection timed out, using default 30fps`)
+      resolve(30)
+    }, 30000)
+
     ffmpegProcess.stderr.on('data', (data: Buffer) => {
       stderrData += data.toString()
     })
 
     ffmpegProcess.on('close', () => {
+      clearTimeout(timeoutId) // Clear timeout on successful completion
       try {
         // Look for frame rate in ffmpeg output (e.g., "5 fps", "15 fps")
         const fpsMatch = stderrData.match(/(\d+(?:\.\d+)?)\s+fps/)
@@ -391,16 +399,10 @@ const detectSWFFrameRate = async (swfFile: string): Promise<number> => {
     })
 
     ffmpegProcess.on('error', (error: Error) => {
+      clearTimeout(timeoutId) // Clear timeout on error
       console.log(`Warning: FFmpeg process error, using default 30fps: ${error.message}`)
       resolve(30)
     })
-
-    // Timeout after 10 seconds
-    setTimeout(() => {
-      ffmpegProcess.kill()
-      console.log(`Warning: FFmpeg frame rate detection timed out, using default 30fps`)
-      resolve(30)
-    }, 10000)
   })
 }
 

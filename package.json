@@ -34,11 +34,11 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "boxen": "^8.0.1",
     "chalk": "^5.3.0",
     "command-line-usage": "^7.0.3",
     "commander": "^12.1.0",
-    "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.3",
     "glob": "^11.0.0",
     "gradient-string": "^3.0.0",
@@ -46,7 +46,6 @@
   },
   "devDependencies": {
     "@types/command-line-usage": "^5.0.4",
-    "@types/ffmpeg-static": "^3.0.3",
     "@types/fluent-ffmpeg": "^2.1.25",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.0.0",
@@ -70,11 +69,16 @@
     "testTimeout": 60000,
     "maxWorkers": 1,
     "verbose": true,
-    "extensionsToTreatAsEsm": [".ts"],
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
     "transform": {
-      "^.+\\.ts$": ["ts-jest", {
-        "useESM": true
-      }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     },
     "transformIgnorePatterns": [
       "node_modules/(?!(chalk|boxen|gradient-string|ora|command-line-usage)/)"

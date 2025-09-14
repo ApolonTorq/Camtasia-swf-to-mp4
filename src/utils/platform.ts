@@ -10,12 +10,12 @@
  * - WSL (Windows Subsystem for Linux) compatibility
  * - Java availability checking
  * - Platform-specific binary extension handling (.exe on Windows)
- * - Fallback path discovery for different ffmpeg-static configurations
+ * - Fallback path discovery for different ffmpeg installation configurations
  * - Comprehensive platform validation and reporting
  *
  * The module is designed to gracefully handle edge cases like:
  * - Missing binaries on specific platforms
- * - Different ffmpeg-static installation patterns
+ * - Different ffmpeg installation patterns
  * - WSL environments where Windows binaries can run on Linux
  * - Development vs production binary locations
  */
@@ -23,7 +23,7 @@
 import * as os from 'os'
 import * as fs from 'fs'
 import * as path from 'path'
-import ffmpegStatic from 'ffmpeg-static'
+import ffmpeg from '@ffmpeg-installer/ffmpeg'
 
 /** Platforms supported by the Camtasia SWF Tool */
 export type SupportedPlatform = 'win32' | 'linux' | 'darwin'
@@ -49,7 +49,7 @@ export const getCurrentPlatform = (): SupportedPlatform => {
   if (!isSupportedPlatform(platform)) {
     console.error(`❌ Unsupported platform: ${platform}`)
     console.error(`   Supported platforms: Windows (win32), Linux (linux), macOS (darwin)`)
-    console.error(`   If you believe this platform should be supported, please check if ffmpeg-static`)
+    console.error(`   If you believe this platform should be supported, please check if @ffmpeg-installer/ffmpeg`)
     console.error(`   provides binaries for ${platform} and update the platform support accordingly.`)
     process.exit(1)
   }
@@ -75,7 +75,7 @@ export const isSupportedPlatform = (platform: string): platform is SupportedPlat
  *
  * This is the core function for FFmpeg binary detection. It handles:
  * - Platform-specific binary extensions (.exe on Windows)
- * - Alternative installation paths from ffmpeg-static
+ * - Alternative installation paths from @ffmpeg-installer/ffmpeg
  * - WSL compatibility (Windows binaries work in WSL environments)
  * - Graceful fallback when binaries are missing
  *
@@ -87,12 +87,12 @@ export const isSupportedPlatform = (platform: string): platform is SupportedPlat
 export const getFFmpegPath = (): string | null => {
   const platform = getCurrentPlatform()
 
-  if (!ffmpegStatic) {
+  if (!ffmpeg.path) {
     console.warn(`⚠️  FFmpeg static binary not available for platform: ${platform}`)
     return null
   }
 
-  let ffmpegPath = ffmpegStatic
+  let ffmpegPath = ffmpeg.path
 
   // Handle platform-specific binary naming
   switch (platform) {
@@ -118,7 +118,7 @@ export const getFFmpegPath = (): string | null => {
       console.warn(`⚠️  FFmpeg binary not found at expected path: ${ffmpegPath}`)
     }
 
-    // Try alternative paths based on common ffmpeg-static patterns
+    // Try alternative paths based on common @ffmpeg-installer/ffmpeg patterns
     const alternatives = getAlternativeFFmpegPaths(platform)
     for (const altPath of alternatives) {
       if (fs.existsSync(altPath)) {
@@ -150,9 +150,9 @@ export const getFFmpegPath = (): string | null => {
  * Get alternative FFmpeg paths to check when the primary path fails
  */
 const getAlternativeFFmpegPaths = (platform: SupportedPlatform): string[] => {
-  if (!ffmpegStatic) return []
+  if (!ffmpeg.path) return []
 
-  const baseDir = path.dirname(ffmpegStatic)
+  const baseDir = path.dirname(ffmpeg.path)
   const alternatives: string[] = []
 
   switch (platform) {
@@ -160,7 +160,7 @@ const getAlternativeFFmpegPaths = (platform: SupportedPlatform): string[] => {
       alternatives.push(
         path.join(baseDir, 'ffmpeg.exe'),
         path.join(baseDir, 'bin', 'ffmpeg.exe'),
-        path.join(baseDir, '..', 'ffmpeg-static', 'ffmpeg.exe')
+        path.join(baseDir, '..', '@ffmpeg-installer', 'win32-x64', 'ffmpeg.exe')
       )
       break
 
@@ -168,7 +168,7 @@ const getAlternativeFFmpegPaths = (platform: SupportedPlatform): string[] => {
       alternatives.push(
         path.join(baseDir, 'ffmpeg'),
         path.join(baseDir, 'bin', 'ffmpeg'),
-        path.join(baseDir, '..', 'ffmpeg-static', 'ffmpeg')
+        path.join(baseDir, '..', '@ffmpeg-installer', 'linux-x64', 'ffmpeg')
       )
       break
 
@@ -176,7 +176,7 @@ const getAlternativeFFmpegPaths = (platform: SupportedPlatform): string[] => {
       alternatives.push(
         path.join(baseDir, 'ffmpeg'),
         path.join(baseDir, 'bin', 'ffmpeg'),
-        path.join(baseDir, '..', 'ffmpeg-static', 'ffmpeg')
+        path.join(baseDir, '..', '@ffmpeg-installer', 'linux-x64', 'ffmpeg')
       )
       break
   }

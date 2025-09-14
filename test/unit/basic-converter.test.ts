@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { spawn } from 'child_process'
-import ffmpegStatic from 'ffmpeg-static'
+import ffmpeg from '@ffmpeg-installer/ffmpeg'
 
 describe('Basic SWF to MP4 Conversion Tests', () => {
   const fixturesDir = path.join(__dirname, '..', 'fixtures', 'videos')
@@ -31,12 +31,12 @@ describe('Basic SWF to MP4 Conversion Tests', () => {
   const checkFFmpegAvailability = (): Promise<boolean> => {
     return new Promise((resolve) => {
       // Use the bundled FFmpeg binary if available
-      const ffmpegPath = ffmpegStatic || 'ffmpeg'
-      const ffmpeg = spawn(ffmpegPath, ['-version'])
-      ffmpeg.on('close', (code) => {
+      const ffmpegPath = ffmpeg.path || 'ffmpeg'
+      const ffmpegProcess = spawn(ffmpegPath, ['-version'])
+      ffmpegProcess.on('close', (code) => {
         resolve(code === 0)
       })
-      ffmpeg.on('error', () => {
+      ffmpegProcess.on('error', () => {
         resolve(false)
       })
     })
@@ -226,11 +226,11 @@ describe('Basic SWF to MP4 Conversion Tests', () => {
 
           await new Promise<void>((resolve, reject) => {
             // Use the bundled FFmpeg binary
-            const ffmpegPath = ffmpegStatic || 'ffmpeg'
+            const ffmpegPath = ffmpeg.path || 'ffmpeg'
             // console.log(`FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`)
-            const ffmpeg = spawn(ffmpegPath, ffmpegArgs)
-            
-            ffmpeg.on('close', (code) => {
+            const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs)
+
+            ffmpegProcess.on('close', (code) => {
               if (code === 0) {
                 resolve()
               } else {
@@ -238,7 +238,7 @@ describe('Basic SWF to MP4 Conversion Tests', () => {
               }
             })
 
-            ffmpeg.on('error', (err) => {
+            ffmpegProcess.on('error', (err) => {
               reject(new Error(`Failed to start FFmpeg: ${err.message}`))
             })
           })
