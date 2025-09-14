@@ -1,8 +1,0 @@
-# Test Outputs Directory
-#
-# This directory stores MP4 files and metadata generated during test runs
-# for manual review and validation. These are NOT used for automated test
-# comparisons - they are saved outputs for you to inspect after tests run.
-#
-# The test suite generates fresh MP4s in test/temp/ during each run, then
-# copies the final results here so you can play them to verify quality.

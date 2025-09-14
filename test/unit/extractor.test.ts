@@ -71,7 +71,7 @@ describe('SWF Extractor', () => {
     testFiles.forEach(testFile => {
       it(`should analyze extracted content from ${testFile}`, async () => {
         const swfPath = path.join(fixturesDir, testFile)
-        const outputDir = path.join(tempOutputDir, path.basename(testFile, '.swf'))
+        const outputDir = path.join(tempOutputDir, `analyze-${path.basename(testFile, '.swf')}`)
 
         // First extract the content
         await extractSWF(swfPath, outputDir)
