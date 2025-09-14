@@ -170,10 +170,19 @@ const convertFramesToMP4 = (
       return
     }
     
-    // Ensure output directory exists
+    // Ensure output directory exists and is writable
     const outputDir = path.dirname(outputPath)
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true })
+    try {
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true })
+      }
+      // Test if the directory is writable by attempting to create a test file
+      const testFile = path.join(outputDir, '.write-test')
+      fs.writeFileSync(testFile, 'test')
+      fs.unlinkSync(testFile)
+    } catch (error) {
+      reject(new Error(`Cannot write to output directory: ${outputDir}. ${error instanceof Error ? error.message : 'Unknown error'}`))
+      return
     }
     
     // Build FFmpeg command

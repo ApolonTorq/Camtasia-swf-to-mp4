@@ -180,7 +180,8 @@ describe('SWF Processing Integration Tests', () => {
 
     it('should handle invalid output paths gracefully', async () => {
       const swfPath = path.join(fixturesDir, testFiles[0])
-      const invalidOutputPath = '/invalid/path/that/does/not/exist/output.mp4'
+      // Use a path that will definitely fail on Windows - trying to write to a non-existent drive
+      const invalidOutputPath = 'Z:\\invalid\\path\\that\\does\\not\\exist\\output.mp4'
 
       const ffmpegAvailable = await checkFFmpegAvailability()
       if (ffmpegAvailable) {

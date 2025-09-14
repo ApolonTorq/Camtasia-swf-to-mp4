@@ -23,6 +23,21 @@ Built on the foundation of the JPEXS decompiler library, this tool is specifical
 
 **Note:** FFmpeg is automatically bundled with the tool via `ffmpeg-static` - no separate installation required!
 
+## Cross-Platform Binary Support
+
+This tool installs FFmpeg binaries for all supported platforms (Windows, Linux, macOS) regardless of your current operating system. This approach enables seamless development and deployment across different environments:
+
+- **Windows Development + WSL2 Linux**: Run the same codebase in both Windows and WSL2 without clearing `node_modules`
+- **CI/CD Pipelines**: Deploy to different platforms without platform-specific builds
+- **Cross-Platform Development**: Develop on one platform and test on another without dependency issues
+
+The tool uses a postinstall script that forces installation of all platform-specific FFmpeg packages:
+- `@ffmpeg-installer/win32-x64` and `@ffmpeg-installer/win32-ia32` for Windows
+- `@ffmpeg-installer/linux-x64` and `@ffmpeg-installer/linux-ia32` for Linux
+- `@ffmpeg-installer/darwin-x64` and `@ffmpeg-installer/darwin-arm64` for macOS
+
+This ensures that the tool works correctly regardless of which platform it's running on, making it particularly useful for developers working in mixed Windows/WSL2 environments.
+
 ## Installation
 
 ### Global Installation (Recommended for CLI usage)
