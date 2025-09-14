@@ -1,0 +1,15 @@
+.DS_Store
+.nodemonignore
+.sass-cache/
+npm-debug.log
+node_modules/
+.bower-*/
+.idea/
+tmp/
+dist/
+.claude/
+
+# Test outputs and temporary files
+test/temp/
+test/**/output/
+*.test-output/

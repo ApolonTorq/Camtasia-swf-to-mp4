@@ -1,0 +1,14 @@
+{
+    "cSpell.words": [
+        "Balzer",
+        "camtasia",
+        "decompilation",
+        "Decompiler",
+        "jpexs",
+        "morphshape",
+        "nodemonignore"
+    ],
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.suggest.autoImports": true,
+    "typescript.updateImportsOnFileMove.enabled": "always"
+}
