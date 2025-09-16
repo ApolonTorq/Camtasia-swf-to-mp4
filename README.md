@@ -31,28 +31,66 @@ This tool installs FFmpeg binaries for all supported platforms (Windows, Linux, 
 - **CI/CD Pipelines**: Deploy to different platforms without platform-specific builds
 - **Cross-Platform Development**: Develop on one platform and test on another without dependency issues
 
-The tool uses a postinstall script that forces installation of all platform-specific FFmpeg packages:
+The tool includes all platform-specific FFmpeg packages as optional dependencies:
+
 - `@ffmpeg-installer/win32-x64` and `@ffmpeg-installer/win32-ia32` for Windows
 - `@ffmpeg-installer/linux-x64` and `@ffmpeg-installer/linux-ia32` for Linux
 - `@ffmpeg-installer/darwin-x64` and `@ffmpeg-installer/darwin-arm64` for macOS
 
-This ensures that the tool works correctly regardless of which platform it's running on, making it particularly useful for developers working in mixed Windows/WSL2 environments.
+npm will automatically install the compatible packages for your current platform while skipping incompatible ones. This ensures that the tool works correctly regardless of which platform it's running on, making it particularly useful for developers working in mixed Windows/WSL2 environments.
 
 ## Installation
 
-### Global Installation (Recommended for CLI usage)
+> **Note:** This package is not currently published to the npm registry. You can install it directly from the GitHub repository using the methods below.
+
+### Global Installation from GitHub (Recommended for CLI usage)
 
 ```bash
-npm install -g camtasia-swf-tool
+# Install directly from GitHub repository
+npm install -g https://github.com/ApolonTorq/Camtasia-swf-to-mp4.git
+
+# Alternative syntax
+npm install -g git+https://github.com/ApolonTorq/Camtasia-swf-to-mp4.git
 ```
 
-### Local Installation
+After global installation, you can use the `camtasia-swf` command from anywhere:
 
 ```bash
-npm install camtasia-swf-tool --save
+camtasia-swf --help
+```
+
+### Local Installation from Repository
+
+For local development or when you want to run the tool from a specific directory:
+
+```bash
+# Clone the repository
+git clone https://github.com/ApolonTorq/Camtasia-swf-to-mp4.git
+cd Camtasia-swf-to-mp4
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+```
+
+After local installation, you can run the tool in several ways:
+
+```bash
+# Using npm scripts
+npm start -- extract presentation.swf
+
+# Using node directly
+node dist/cli.js extract presentation.swf
+
+# Using npx (from within the project directory)
+npx camtasia-swf extract presentation.swf
 ```
 
 ## Command Line Usage
+
+> **Note:** The examples below assume you have installed the tool globally. If you installed locally using `git clone`, replace `camtasia-swf` with one of the local execution methods shown in the [Local Installation](#local-installation-from-repository) section.
 
 ### Extract Command
 
@@ -130,7 +168,17 @@ presentation.swf → presentation.mp4
 
 ## Programmatic Usage (TypeScript/JavaScript)
 
-You can also use the library programmatically in your Node.js applications:
+You can also use the library programmatically in your Node.js applications. First install it as a dependency:
+
+```bash
+# Install from GitHub as a dependency
+npm install https://github.com/ApolonTorq/Camtasia-swf-to-mp4.git --save
+
+# Or for development
+npm install git+https://github.com/ApolonTorq/Camtasia-swf-to-mp4.git --save-dev
+```
+
+Then use it in your code:
 
 ```typescript
 import { extractSWF, convertSWF } from 'camtasia-swf-tool'
