@@ -24,7 +24,7 @@ import * as path from 'path'
 import ffmpeg from 'fluent-ffmpeg'
 import { extractSWF, analyzeExtractedContent } from './extractor'
 import { log, colors, createStyledSpinner } from '../utils/cli-styling'
-import { getFFmpegPath, getFFprobePath, validatePlatformSupport } from '../utils/platform'
+import { getFFmpegPath, validatePlatformSupport } from '../utils/platform'
 
 /**
  * Initialize fluent-ffmpeg with cross-platform FFmpeg binaries
@@ -54,11 +54,6 @@ const initializeFFmpeg = (): boolean => {
   // Configure fluent-ffmpeg with detected binary paths
   if (platformStatus.ffmpeg) {
     ffmpeg.setFfmpegPath(platformStatus.ffmpeg)
-  }
-
-  // Set FFprobe path if available (for media analysis)
-  if (platformStatus.ffprobe) {
-    ffmpeg.setFfprobePath(platformStatus.ffprobe)
   }
 
   return true

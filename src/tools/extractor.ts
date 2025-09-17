@@ -23,7 +23,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { spawn } from 'child_process'
 import ffmpeg from 'fluent-ffmpeg'
-import { getFFmpegPath, getFFprobePath, validatePlatformSupport } from '../utils/platform'
+import { getFFmpegPath, validatePlatformSupport } from '../utils/platform'
 // import { log, colors } from '../utils/cli-styling'  // Temporarily commented out for Jest compatibility
 
 /**
@@ -44,11 +44,6 @@ const initializeFFmpeg = (): boolean => {
 
   // Configure fluent-ffmpeg with detected binary paths
   ffmpeg.setFfmpegPath(platformStatus.ffmpeg)
-
-  // Set FFprobe path if available (used for media analysis)
-  if (platformStatus.ffprobe) {
-    ffmpeg.setFfprobePath(platformStatus.ffprobe)
-  }
 
   return true
 }
@@ -89,7 +84,7 @@ const buildExtractionParameters = (options: ExtractorOptions) => {
   let jarPath = path.resolve(__dirname, '../../bin/ffdec.jar')
 
   // Adjust path when running from compiled dist/ directory
-  if (__dirname.includes('/dist/')) {
+  if (__dirname.includes('\\dist\\') || __dirname.includes('/dist/')) {
     jarPath = path.resolve(__dirname, '../../../bin/ffdec.jar')
   }
 
@@ -164,7 +159,15 @@ export const extractSWFContent = (options: ExtractorOptions, callbacks: Extracto
     // Ignore errors here as this is just preemptive directory creation
   }
 
-  const javaProcess = spawn('java', buildExtractionParameters(options))
+  const params = buildExtractionParameters(options)
+  if (process.env.NODE_ENV !== 'test') {
+    console.log(`🔧 DEBUG: __dirname: ${__dirname}`)
+    console.log(`🔧 DEBUG: JAR path: ${params[1]}`)
+    console.log(`🔧 DEBUG: JAR exists: ${fs.existsSync(params[1])}`)
+    console.log(`🔧 DEBUG: JPEXS command: java ${params.join(' ')}`)
+  }
+  
+  const javaProcess = spawn('java', params)
 
   javaProcess.stdout.on('data', (data: Buffer) => callbacks.onStdout(data.toString('utf8')))
   javaProcess.stderr.on('data', (data: Buffer) => {
@@ -312,9 +315,9 @@ export const extractSWF = async (swfFile: string, outputDir: string): Promise<vo
             resolve()
           },
           onStdout: (data: string) => {
-            // Log extraction progress (muted styling temporarily disabled)
-            if (data.trim()) {
-              // console.log(`${data.trim()}`)  // Temporarily muted
+            // Log extraction progress for debugging
+            if (data.trim() && process.env.NODE_ENV !== 'test') {
+              console.log(`📝 DEBUG: JPEXS output: ${data.trim()}`)
             }
           }
         }
@@ -343,6 +346,7 @@ export const extractSWF = async (swfFile: string, outputDir: string): Promise<vo
       console.log(`🔄 DEBUG: Using FFmpeg for audio extraction...`)
     }
 
+    // Always try FFmpeg for audio extraction since JPEXS has issues with some SWF audio formats
     try {
       await extractAudioWithFFmpeg(swfFile, outputDir)
       if (process.env.NODE_ENV !== 'test') {

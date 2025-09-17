@@ -86,3 +86,7 @@ npm run test:coverage      # Run tests with coverage report
 - **Java requirement**: JDK installation required for JPEXS functionality
 - **FFmpeg**: Bundled via ffmpeg-static for cross-platform compatibility
 - **TypeScript paths**: Uses `@/*` alias for `src/*` imports
+
+## Git Commit Messages
+
+NEVER add "Co-Authored-By: Claude" or "Generated with Claude Code" or any similar attribution in commit messages. The user is using Claude as a coding tool, not as a co-author. Keep commit messages focused on the technical changes only.

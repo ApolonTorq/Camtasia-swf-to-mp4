@@ -133,6 +133,12 @@ program
       log.info(`Found ${colors.highlight(swfFiles.length.toString())} SWF file(s) to process`)
       console.log()
 
+      const results = {
+        successful: 0,
+        failed: 0,
+        errors: [] as Array<{ file: string; error: string }>
+      }
+
       for (let i = 0; i < swfFiles.length; i++) {
         const swfFile = swfFiles[i]
         const progress = createProgress(i + 1, swfFiles.length, 'files processed')
@@ -144,14 +150,37 @@ program
           ? path.join(options.output, path.basename(swfFile, '.swf'))
           : path.join(path.dirname(swfFile), path.basename(swfFile, '.swf') + '-output')
 
-        await extractSWF(swfFile, outputDir)
-        fileStatus.completed(path.basename(swfFile), outputDir)
+        try {
+          await extractSWF(swfFile, outputDir)
+          fileStatus.completed(path.basename(swfFile), outputDir)
+          results.successful++
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          fileStatus.error(path.basename(swfFile), errorMessage)
+          results.failed++
+          results.errors.push({ file: path.basename(swfFile), error: errorMessage })
+        }
         console.log()
       }
       
-      console.log(createSuccessBox(`🎉 Successfully extracted ${swfFiles.length} SWF file(s)!`))
+      // Show final results
+      if (results.successful > 0) {
+        console.log(createSuccessBox(`🎉 Successfully extracted ${results.successful} SWF file(s)!`))
+      }
+      
+      if (results.failed > 0) {
+        console.log(createErrorBox(`❌ Failed to extract ${results.failed} SWF file(s):`))
+        results.errors.forEach(({ file, error }) => {
+          console.log(`   ${colors.error('•')} ${file}: ${error}`)
+        })
+        
+        // Exit with error code only if ALL files failed
+        if (results.successful === 0) {
+          process.exit(1)
+        }
+      }
     } catch (error) {
-      console.log(createErrorBox(`Error during extraction: ${error}`))
+      console.log(createErrorBox(`Fatal error during extraction: ${error}`))
       process.exit(1)
     }
   })
@@ -220,6 +249,12 @@ program
       }
       console.log()
 
+      const results = {
+        successful: 0,
+        failed: 0,
+        errors: [] as Array<{ file: string; error: string }>
+      }
+
       for (let i = 0; i < swfFiles.length; i++) {
         const swfFile = swfFiles[i]
         const progress = createProgress(i + 1, swfFiles.length, 'files converted')
@@ -233,18 +268,41 @@ program
 
         const mp4Path = path.join(outputDir, path.basename(swfFile, '.swf') + '.mp4')
         
-        await convertSWF(swfFile, mp4Path, {
-          framerate: parseInt(options.framerate || '30'),
-          keepExtracted: options.keepExtracted || false
-        })
-        
-        fileStatus.completed(path.basename(swfFile), mp4Path)
+        try {
+          await convertSWF(swfFile, mp4Path, {
+            framerate: parseInt(options.framerate || '30'),
+            keepExtracted: options.keepExtracted || false
+          })
+          
+          fileStatus.completed(path.basename(swfFile), mp4Path)
+          results.successful++
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          fileStatus.error(path.basename(swfFile), errorMessage)
+          results.failed++
+          results.errors.push({ file: path.basename(swfFile), error: errorMessage })
+        }
         console.log()
       }
       
-      console.log(createSuccessBox(`🎬 Successfully converted ${swfFiles.length} SWF file(s) to MP4!`))
+      // Show final results
+      if (results.successful > 0) {
+        console.log(createSuccessBox(`🎬 Successfully converted ${results.successful} SWF file(s) to MP4!`))
+      }
+      
+      if (results.failed > 0) {
+        console.log(createErrorBox(`❌ Failed to convert ${results.failed} SWF file(s):`))
+        results.errors.forEach(({ file, error }) => {
+          console.log(`   ${colors.error('•')} ${file}: ${error}`)
+        })
+        
+        // Exit with error code only if ALL files failed
+        if (results.successful === 0) {
+          process.exit(1)
+        }
+      }
     } catch (error) {
-      console.log(createErrorBox(`Error during conversion: ${error}`))
+      console.log(createErrorBox(`Fatal error during conversion: ${error}`))
       process.exit(1)
     }
   })

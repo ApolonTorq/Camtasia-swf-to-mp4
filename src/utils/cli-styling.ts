@@ -188,6 +188,8 @@ export const fileStatus = {
     log.success(message)
   },
   failed: (filename: string, error: string) => 
+    log.error(`Failed: ${colors.highlight(filename)} - ${error}`),
+  error: (filename: string, error: string) => 
     log.error(`Failed: ${colors.highlight(filename)} - ${error}`)
 }
 

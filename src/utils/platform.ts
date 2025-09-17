@@ -186,6 +186,7 @@ const getAlternativeFFmpegPaths = (platform: SupportedPlatform): string[] => {
 
 /**
  * Get the FFprobe path corresponding to the FFmpeg path
+ * Note: FFprobe is not used in this project but kept for potential future use
  */
 export const getFFprobePath = (ffmpegPath: string): string | null => {
   const platform = getCurrentPlatform()
@@ -197,7 +198,7 @@ export const getFFprobePath = (ffmpegPath: string): string | null => {
     ffprobePath += '.exe'
   }
 
-  // Verify ffprobe exists
+  // Verify ffprobe exists (silently)
   if (fs.existsSync(ffprobePath)) {
     return ffprobePath
   }
@@ -206,16 +207,11 @@ export const getFFprobePath = (ffmpegPath: string): string | null => {
   if (platform === 'linux' && process.env.WSL_DISTRO_NAME) {
     const windowsFFprobe = ffprobePath + '.exe'
     if (fs.existsSync(windowsFFprobe)) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.log(`✅ Found Windows FFprobe binary for WSL: ${windowsFFprobe}`)
-      }
       return windowsFFprobe
     }
   }
 
-  if (process.env.NODE_ENV !== 'test') {
-    console.warn(`⚠️  FFprobe not found at: ${ffprobePath}`)
-  }
+  // Return null silently - no warnings since FFprobe is not required
   return null
 }
 
@@ -238,13 +234,11 @@ export const getFFprobePath = (ffmpegPath: string): string | null => {
 export const validatePlatformSupport = (): {
   platform: SupportedPlatform
   ffmpeg: string | null
-  ffprobe: string | null
   java: boolean
   isFullySupported: boolean
 } => {
   const platform = getCurrentPlatform()
   const ffmpegPath = getFFmpegPath()
-  const ffprobePath = ffmpegPath ? getFFprobePath(ffmpegPath) : null
 
   // Check Java availability (for JPEXS)
   const javaAvailable = checkJavaAvailability()
@@ -254,7 +248,6 @@ export const validatePlatformSupport = (): {
   return {
     platform,
     ffmpeg: ffmpegPath,
-    ffprobe: ffprobePath,
     java: javaAvailable,
     isFullySupported
   }
@@ -285,7 +278,6 @@ export const logPlatformStatus = (): void => {
   if (status.ffmpeg) {
     console.log(`           Path: ${status.ffmpeg}`)
   }
-  console.log(`   FFprobe: ${status.ffprobe ? '✅ Available' : '❌ Not found'}`)
   console.log(`   Java: ${status.java ? '✅ Available' : '❌ Not found'}`)
 
   if (!status.isFullySupported) {

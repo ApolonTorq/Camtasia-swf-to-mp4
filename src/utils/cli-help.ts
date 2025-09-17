@@ -31,21 +31,53 @@ export const syntaxColors = {
 }
 
 /**
+ * Execution context types for the CLI
+ */
+type ExecutionContext = 'npm' | 'symlink'
+
+/**
+ * Detects how the CLI was started to provide appropriate usage examples
+ */
+const detectExecutionContext = (): ExecutionContext => {
+  const scriptPath = process.argv[1] || ''
+  const isNpmStart = process.argv.some(arg => arg.includes('npm') || arg === 'start')
+  const isNodeModules = scriptPath.includes('node_modules')
+  const isDirectNode = scriptPath.includes('dist/src/cli.js')
+
+  // If running via npm start or directly via node
+  if (isNpmStart || (isDirectNode && !isNodeModules)) {
+    return 'npm'
+  }
+
+  return 'symlink'
+}
+
+/**
+ * Generate context-appropriate command examples
+ */
+const getCommandPrefix = (context: ExecutionContext): string => {
+  return context === 'npm' ? 'npm start --' : 'camtasia-swf'
+}
+
+/**
  * Generate syntax-highlighted help for the main command
  */
 export const generateMainHelp = (): string => {
+  const context = detectExecutionContext()
+  const cmdPrefix = getCommandPrefix(context)
+
   const sections = [
     {
       header: syntaxColors.header('Camtasia SWF Tool'),
-      content: syntaxColors.description('A powerful command-line utility for processing Camtasia-generated Flash SWF files. Extract frame sequences and audio content, then convert them to modern MP4 format.')
+      content: syntaxColors.description('A command-line utility for processing Camtasia-generated Flash SWF files. Extract frame sequences and audio content, then convert them to modern MP4 format.')
     },
     {
       header: syntaxColors.header('Synopsis'),
       content: [
-        syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.option('<command>') + ' ' + syntaxColors.argument('[options]'),
+        syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.option('<command>') + ' ' + syntaxColors.argument('[options]'),
         '',
-        syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[--output <dir>]') + ' ' + syntaxColors.flag('[--recursive]'),
-        syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[--output <dir>]') + ' ' + syntaxColors.flag('[--recursive]') + ' ' + syntaxColors.option('[--framerate <fps>]') + ' ' + syntaxColors.flag('[--keep-extracted]')
+        syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[--output <dir>]') + ' ' + syntaxColors.flag('[--recursive]'),
+        syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[--output <dir>]') + ' ' + syntaxColors.flag('[--recursive]') + ' ' + syntaxColors.option('[--framerate <fps>]') + ' ' + syntaxColors.flag('[--keep-extracted]')
       ]
     },
     {
@@ -78,16 +110,16 @@ export const generateMainHelp = (): string => {
       header: syntaxColors.header('Examples'),
       content: [
         syntaxColors.description('Extract frames from a single SWF file:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('presentation.swf'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('presentation.swf'),
         '',
         syntaxColors.description('Convert SWF to MP4 with custom frame rate:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--framerate') + ' ' + syntaxColors.value('60'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--framerate') + ' ' + syntaxColors.value('60'),
         '',
         syntaxColors.description('Process directory recursively:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./output/'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./output/'),
         '',
         syntaxColors.description('Batch convert multiple files:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('./presentations/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.option('--framerate') + ' ' + syntaxColors.value('30') + ' ' + syntaxColors.flag('--keep-extracted')
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('./presentations/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.option('--framerate') + ' ' + syntaxColors.value('30') + ' ' + syntaxColors.flag('--keep-extracted')
       ]
     }
   ]
@@ -100,6 +132,9 @@ export const generateMainHelp = (): string => {
  * Generate syntax-highlighted help for the extract command
  */
 export const generateExtractHelp = (): string => {
+  const context = detectExecutionContext()
+  const cmdPrefix = getCommandPrefix(context)
+
   const sections = [
     {
       header: syntaxColors.header('Extract Command'),
@@ -107,7 +142,7 @@ export const generateExtractHelp = (): string => {
     },
     {
       header: syntaxColors.header('Synopsis'),
-      content: syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[options]')
+      content: syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[options]')
     },
     {
       header: syntaxColors.header('Arguments'),
@@ -149,13 +184,13 @@ export const generateExtractHelp = (): string => {
       header: syntaxColors.header('Examples'),
       content: [
         syntaxColors.description('Extract from single file:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('presentation.swf'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('presentation.swf'),
         '',
         syntaxColors.description('Extract from directory to custom output:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./extracted/'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./extracted/'),
         '',
         syntaxColors.description('Recursive processing:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./presentations/') + ' ' + syntaxColors.flag('--recursive')
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./presentations/') + ' ' + syntaxColors.flag('--recursive')
       ]
     }
   ]
@@ -168,6 +203,9 @@ export const generateExtractHelp = (): string => {
  * Generate syntax-highlighted help for the convert command
  */
 export const generateConvertHelp = (): string => {
+  const context = detectExecutionContext()
+  const cmdPrefix = getCommandPrefix(context)
+
   const sections = [
     {
       header: syntaxColors.header('Convert Command'),
@@ -175,7 +213,7 @@ export const generateConvertHelp = (): string => {
     },
     {
       header: syntaxColors.header('Synopsis'),
-      content: syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[options]')
+      content: syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.argument('<input>') + ' ' + syntaxColors.option('[options]')
     },
     {
       header: syntaxColors.header('Arguments'),
@@ -219,16 +257,16 @@ export const generateConvertHelp = (): string => {
       header: syntaxColors.header('Examples'),
       content: [
         syntaxColors.description('Convert single file:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf'),
         '',
         syntaxColors.description('Convert with custom frame rate:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--framerate') + ' ' + syntaxColors.value('60'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--framerate') + ' ' + syntaxColors.value('60'),
         '',
         syntaxColors.description('Convert directory and keep extracted files:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.flag('--keep-extracted'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.flag('--keep-extracted'),
         '',
         syntaxColors.description('Convert to specific output directory:'),
-        syntaxColors.example('  $ ') + syntaxColors.command('camtasia-swf') + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./videos/')
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./videos/')
       ]
     },
     {
