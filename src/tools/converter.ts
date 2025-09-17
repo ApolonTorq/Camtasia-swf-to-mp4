@@ -68,6 +68,10 @@ export interface ConversionOptions {
   framerate: number
   /** Whether to keep extracted frames/audio files after conversion */
   keepExtracted: boolean
+  /** Optional: Extract only the first N frames for testing */
+  testFrames?: number
+  /** Optional: Override extraction timeout in minutes */
+  timeoutMinutes?: number
 }
 
 /**
@@ -112,7 +116,7 @@ export const convertSWF = async (
     log.muted('  Extracting frames and audio...')
     
     // Step 1: Extract content from SWF
-    await extractSWF(swfFile, tempDir)
+    await extractSWF(swfFile, tempDir, options.testFrames, options.timeoutMinutes)
     
     // Step 2: Analyze extracted content
     const content = analyzeExtractedContent(tempDir)
@@ -127,7 +131,7 @@ export const convertSWF = async (
     const conversionSpinner = createStyledSpinner('Converting to MP4...', 'green')
     conversionSpinner.start()
     
-    await convertFramesToMP4(content, outputMP4, actualFrameRate)
+    await convertFramesToMP4(content, outputMP4, actualFrameRate, options.testFrames)
     
     conversionSpinner.stop()
     log.muted('  Video conversion completed')
@@ -149,7 +153,8 @@ export const convertSWF = async (
 const convertFramesToMP4 = (
   content: any,
   outputPath: string,
-  framerate: number
+  framerate: number,
+  testFrames?: number
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (content.frameFiles.length === 0) {
@@ -201,13 +206,24 @@ const convertFramesToMP4 = (
       // Use the first audio file found
       const audioFile = content.audioFiles[0]
       command = command.input(audioFile)
-      
+
       // Set audio codec
       command = command.audioCodec('aac')
-        // Removed -shortest to allow full audio duration
+
+      // Limit audio duration if testFrames is specified
+      if (testFrames) {
+        const videoDuration = testFrames / framerate // Calculate duration in seconds
+        command = command.outputOptions(['-t', videoDuration.toString()])
+      }
     } else {
       // No audio - create silent video
       log.warning('No audio found, creating silent video')
+
+      // Even without audio, limit video duration if testFrames is specified
+      if (testFrames) {
+        const videoDuration = testFrames / framerate // Calculate duration in seconds
+        command = command.outputOptions(['-t', videoDuration.toString()])
+      }
     }
     
     command
@@ -301,25 +317,53 @@ const createFramePattern = (frameFiles: string[]): { pattern: string; count: num
  * @returns Promise that resolves when removal is complete
  */
 const removeDirectory = async (dirPath: string): Promise<void> => {
-  if (fs.existsSync(dirPath)) {
-    const files = fs.readdirSync(dirPath)
+  if (!fs.existsSync(dirPath)) {
+    return
+  }
 
-    // Process all files and subdirectories
-    for (const file of files) {
-      const filePath = path.join(dirPath, file)
-      const stat = fs.statSync(filePath)
+  // Retry logic for cleanup in case of locks or timing issues
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const files = fs.readdirSync(dirPath)
 
-      if (stat.isDirectory()) {
-        // Recursively remove subdirectories
-        await removeDirectory(filePath)
-      } else {
-        // Remove individual files
-        fs.unlinkSync(filePath)
+      // Process all files and subdirectories
+      for (const file of files) {
+        const filePath = path.join(dirPath, file)
+
+        try {
+          const stat = fs.statSync(filePath)
+
+          if (stat.isDirectory()) {
+            // Recursively remove subdirectories
+            await removeDirectory(filePath)
+          } else {
+            // Remove individual files
+            fs.unlinkSync(filePath)
+          }
+        } catch (fileError) {
+          // Skip files that can't be removed and continue
+          if (process.env.NODE_ENV !== 'test') {
+            console.log(`⚠️  DEBUG: Could not remove ${filePath}: ${fileError}`)
+          }
+        }
       }
-    }
 
-    // Remove the now-empty parent directory
-    fs.rmdirSync(dirPath)
+      // Remove the parent directory
+      fs.rmdirSync(dirPath)
+      return // Success, exit the retry loop
+
+    } catch (error: any) {
+      if (attempt === 3) {
+        // Final attempt failed, log but don't crash
+        if (process.env.NODE_ENV !== 'test') {
+          console.log(`⚠️  DEBUG: Could not fully clean up ${dirPath}: ${error.message}`)
+        }
+        return
+      }
+
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+    }
   }
 }
 

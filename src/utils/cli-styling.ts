@@ -165,13 +165,13 @@ export const createProgress = (current: number, total: number, description: stri
   const filledLength = Math.round((percentage / 100) * barLength)
   const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength)
   
-  const coloredBar = percentage >= 100 
-    ? colors.success(bar)
-    : percentage >= 75 
-    ? colors.info(bar) 
-    : percentage >= 50 
-    ? colors.warning(bar)
-    : colors.error(bar)
+  const coloredBar = percentage >= 100
+    ? colors.success(bar)  // Green when complete
+    : percentage >= 75
+    ? colors.info(bar)     // Cyan when nearly done
+    : percentage >= 25
+    ? colors.warning(bar)  // Yellow when making progress
+    : colors.muted(bar)    // Gray when just starting (not red)
   
   return `${coloredBar} ${colors.bold(`${percentage}%`)} ${colors.muted(`(${current}/${total})`)} ${description ? colors.highlight(description) : ''}`
 }

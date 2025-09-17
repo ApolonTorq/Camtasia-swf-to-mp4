@@ -163,6 +163,10 @@ export const generateExtractHelp = (): string => {
         {
           name: syntaxColors.flag('-r, --recursive'),
           summary: syntaxColors.description('Process directories recursively to find SWF files')
+        },
+        {
+          name: syntaxColors.option('--test-frames') + ' ' + syntaxColors.value('<count>'),
+          summary: syntaxColors.description('Extract only the first N frames for testing (e.g., --test-frames 100)')
         }
       ]
     },
@@ -190,7 +194,10 @@ export const generateExtractHelp = (): string => {
         syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./extracted/'),
         '',
         syntaxColors.description('Recursive processing:'),
-        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./presentations/') + ' ' + syntaxColors.flag('--recursive')
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('./presentations/') + ' ' + syntaxColors.flag('--recursive'),
+        '',
+        syntaxColors.description('Test mode - extract only first 100 frames:'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('extract') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--test-frames') + ' ' + syntaxColors.value('100')
       ]
     }
   ]
@@ -242,6 +249,10 @@ export const generateConvertHelp = (): string => {
         {
           name: syntaxColors.flag('--keep-extracted'),
           summary: syntaxColors.description('Keep extracted frames and audio files after conversion')
+        },
+        {
+          name: syntaxColors.option('--test-frames') + ' ' + syntaxColors.value('<count>'),
+          summary: syntaxColors.description('Extract only the first N frames for testing (e.g., --test-frames 100)')
         }
       ]
     },
@@ -266,7 +277,10 @@ export const generateConvertHelp = (): string => {
         syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('./swf-files/') + ' ' + syntaxColors.flag('--recursive') + ' ' + syntaxColors.flag('--keep-extracted'),
         '',
         syntaxColors.description('Convert to specific output directory:'),
-        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./videos/')
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--output') + ' ' + syntaxColors.value('./videos/'),
+        '',
+        syntaxColors.description('Test mode - convert only first 50 frames:'),
+        syntaxColors.example('  $ ') + syntaxColors.command(cmdPrefix) + ' ' + syntaxColors.subcommand('convert') + ' ' + syntaxColors.value('presentation.swf') + ' ' + syntaxColors.option('--test-frames') + ' ' + syntaxColors.value('50')
       ]
     },
     {

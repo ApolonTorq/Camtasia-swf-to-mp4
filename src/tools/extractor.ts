@@ -57,6 +57,8 @@ export interface ExtractorOptions {
   swfFile: string
   /** Directory where extracted content will be saved */
   outputDir: string
+  /** Optional: Extract only the first N frames for testing */
+  testFrames?: number
 }
 
 /** Callback functions for handling JPEXS extraction process events */
@@ -90,6 +92,12 @@ const buildExtractionParameters = (options: ExtractorOptions) => {
 
   const params = ['-jar', jarPath]
 
+  // Add frame selection if specified for testing (must come before -export)
+  if (options.testFrames) {
+    params.push('-select')
+    params.push(`1-${options.testFrames}`)
+  }
+
   // Configure JPEXS to export both frames (as PNG) and sounds (as MP3/WAV)
   params.push('-export')
   params.push('frame,sound')
@@ -117,15 +125,15 @@ const buildExtractionParameters = (options: ExtractorOptions) => {
  * @param options - Configuration with input SWF file and output directory
  * @param callbacks - Event handlers for process lifecycle and output
  */
-export const extractSWFContent = (options: ExtractorOptions, callbacks: ExtractorCallbacks): void => {
+export const extractSWFContent = (options: ExtractorOptions, callbacks: ExtractorCallbacks): any => {
   if (!options) {
     callbacks.onError('No options provided')
-    return
+    return null
   }
-  
+
   if (!fs.existsSync(options.swfFile)) {
     callbacks.onError(`SWF file not found: ${options.swfFile}`)
-    return
+    return null
   }
 
   // Ensure output directory and subdirectories exist with proper permissions
@@ -190,6 +198,9 @@ export const extractSWFContent = (options: ExtractorOptions, callbacks: Extracto
       callbacks.onError(`Java process error: ${error.message}`)
     }
   })
+
+  // Return the process so it can be killed if needed
+  return javaProcess
 }
 
 /**
@@ -267,6 +278,7 @@ export const extractAudioWithFFmpeg = (swfFile: string, outputDir: string): Prom
   })
 }
 
+
 /**
  * High-level SWF extraction with dual-strategy approach
  *
@@ -285,7 +297,7 @@ export const extractAudioWithFFmpeg = (swfFile: string, outputDir: string): Prom
  * @returns Promise that resolves when extraction completes successfully
  * @throws Error if no frames could be extracted or critical errors occur
  */
-export const extractSWF = async (swfFile: string, outputDir: string): Promise<void> => {
+export const extractSWF = async (swfFile: string, outputDir: string, testFrames?: number, timeoutMinutes?: number): Promise<void> => {
   let jpexsSucceeded = false
 
   if (process.env.NODE_ENV !== 'test') {
@@ -293,13 +305,73 @@ export const extractSWF = async (swfFile: string, outputDir: string): Promise<vo
   }
   
   try {
-    // Try standard JPEXS extraction first with timeout
+    // Calculate timeout - use manual override or dynamic calculation
+    let finalTimeoutMs: number
+    let finalTimeoutMinutes: number
+
+    if (timeoutMinutes) {
+      // Use manual override
+      finalTimeoutMs = timeoutMinutes * 60000
+      finalTimeoutMinutes = timeoutMinutes
+    } else {
+      // Calculate dynamic timeout based on file size and estimated frame count
+      const fileStats = fs.statSync(swfFile)
+      const fileSizeMB = fileStats.size / (1024 * 1024)
+
+      // More generous timeout calculation:
+      // Base: 10 minutes for any file
+      // + 1 minute per MB of file size (to account for frame count/complexity)
+      // + Extra time for very large files
+      let calculatedTimeout = 10 + fileSizeMB // Base 10min + 1min per MB
+
+      // Add extra time for larger files (non-linear scaling)
+      if (fileSizeMB > 20) {
+        calculatedTimeout += (fileSizeMB - 20) * 0.5 // Extra 30sec per MB above 20MB
+      }
+      if (fileSizeMB > 50) {
+        calculatedTimeout += (fileSizeMB - 50) * 0.5 // Extra 30sec per MB above 50MB
+      }
+
+      // Minimum: 10 minutes, no maximum (let large files take as long as needed)
+      finalTimeoutMinutes = Math.max(10, Math.round(calculatedTimeout))
+      finalTimeoutMs = finalTimeoutMinutes * 60000
+    }
+
+    if (process.env.NODE_ENV !== 'test') {
+      if (timeoutMinutes) {
+        console.log(`📊 DEBUG: Manual timeout: ${finalTimeoutMinutes} minutes`)
+      } else {
+        const fileStats = fs.statSync(swfFile)
+        const fileSizeMB = fileStats.size / (1024 * 1024)
+        console.log(`📊 DEBUG: File size: ${fileSizeMB.toFixed(1)}MB, auto timeout: ${finalTimeoutMinutes} minutes`)
+      }
+    }
+
+    // Try standard JPEXS extraction first with calculated timeout
+    let lastOutputWasFrameProgress = false
     await new Promise<void>((resolve, reject) => {
+      let jpexsProcess: any = null
+
       const timeout = setTimeout(() => {
-        reject(new Error('JPEXS extraction timed out after 5 minutes'))
-      }, 300000) // 5 minutes for large files
-      extractSWFContent(
-        { swfFile, outputDir },
+        // Kill the Java process when timeout occurs
+        if (jpexsProcess && jpexsProcess.kill) {
+          if (process.env.NODE_ENV !== 'test') {
+            console.log(`⏰ DEBUG: Killing timed-out JPEXS process (PID: ${jpexsProcess.pid})`)
+          }
+          jpexsProcess.kill('SIGTERM')
+
+          // Force kill if SIGTERM doesn't work after 5 seconds
+          setTimeout(() => {
+            if (jpexsProcess && !jpexsProcess.killed) {
+              jpexsProcess.kill('SIGKILL')
+            }
+          }, 5000)
+        }
+        reject(new Error(`JPEXS extraction timed out after ${finalTimeoutMinutes} minutes`))
+      }, finalTimeoutMs)
+
+      jpexsProcess = extractSWFContent(
+        { swfFile, outputDir, testFrames },
         {
           onError: (err: string) => {
             clearTimeout(timeout)
@@ -315,9 +387,35 @@ export const extractSWF = async (swfFile: string, outputDir: string): Promise<vo
             resolve()
           },
           onStdout: (data: string) => {
-            // Log extraction progress for debugging
+            // Log extraction progress for debugging, but filter out common end-of-stream exceptions
             if (data.trim() && process.env.NODE_ENV !== 'test') {
-              console.log(`📝 DEBUG: JPEXS output: ${data.trim()}`)
+              const trimmedData = data.trim()
+
+              // Skip logging common EndOfStreamException and its stack trace - this is expected with certain SWF files
+              if (trimmedData.includes('EndOfStreamException: Premature end of the stream reached') ||
+                  trimmedData.includes('SEVERE: Error during tag reading') ||
+                  trimmedData.includes('com.jpexs.decompiler.flash.EndOfStreamException') ||
+                  trimmedData.includes('at com.jpexs.decompiler.flash.SWFInputStream') ||
+                  trimmedData.includes('at com.jpexs.decompiler.flash.tags.SoundStreamHead')) {
+                // This is a common, expected exception that JPEXS handles gracefully - suppress logging
+                return
+              }
+
+              // Handle frame export progress with overwriting display
+              const frameMatch = trimmedData.match(/^Exported frame (\d+)\/(\d+)$/)
+              if (frameMatch) {
+                // Use \r to return to beginning of line and overwrite previous frame progress
+                process.stdout.write(`\r📝 DEBUG: JPEXS output: ${trimmedData}`)
+                lastOutputWasFrameProgress = true
+                return
+              }
+
+              // For non-frame messages, add newline if last output was frame progress
+              if (lastOutputWasFrameProgress) {
+                process.stdout.write('\n')
+                lastOutputWasFrameProgress = false
+              }
+              console.log(`📝 DEBUG: JPEXS output: ${trimmedData}`)
             }
           }
         }
@@ -374,6 +472,8 @@ export const extractSWF = async (swfFile: string, outputDir: string): Promise<vo
     if (!jpexsSucceeded && !hasFrames) {
       throw new Error('JPEXS extraction failed completely and no frames were extracted')
     }
+
+    // Frame limiting is now handled by JPEXS -select parameter during extraction
 
     if (process.env.NODE_ENV !== 'test') {
       console.log(`🎉 DEBUG: extractSWF completed successfully`)

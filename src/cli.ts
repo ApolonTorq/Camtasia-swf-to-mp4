@@ -102,8 +102,15 @@ program
   .argument('<input>', 'SWF file or directory containing SWF files')
   .option('-o, --output <dir>', 'Output directory (default: adjacent to SWF files)')
   .option('-r, --recursive', 'Process directories recursively')
+  .option('--test-frames <count>', 'Extract only the first N frames for testing (e.g., --test-frames 100)', (value) => {
+    const parsed = parseInt(value, 10)
+    if (isNaN(parsed) || parsed <= 0) {
+      throw new Error('test-frames must be a positive number')
+    }
+    return parsed
+  })
   .option('-h, --help', 'Display help for extract command')
-  .action(async (input: string, options: { output?: string; recursive?: boolean; help?: boolean }) => {
+  .action(async (input: string, options: { output?: string; recursive?: boolean; testFrames?: number; help?: boolean }) => {
     if (options.help) {
       console.log(generateExtractHelp())
       return
@@ -131,6 +138,9 @@ program
       }
 
       log.info(`Found ${colors.highlight(swfFiles.length.toString())} SWF file(s) to process`)
+      if (options.testFrames) {
+        log.info(`${colors.highlight('TEST MODE:')} Extracting only first ${colors.highlight(options.testFrames.toString())} frames`)
+      }
       console.log()
 
       const results = {
@@ -151,7 +161,7 @@ program
           : path.join(path.dirname(swfFile), path.basename(swfFile, '.swf') + '-output')
 
         try {
-          await extractSWF(swfFile, outputDir)
+          await extractSWF(swfFile, outputDir, options.testFrames)
           fileStatus.completed(path.basename(swfFile), outputDir)
           results.successful++
         } catch (error) {
@@ -204,12 +214,28 @@ program
   .option('-r, --recursive', 'Process directories recursively')
   .option('-f, --framerate <fps>', 'Frame rate for output video (default: 30)', '30')
   .option('--keep-extracted', 'Keep extracted frames and audio files after conversion')
+  .option('--test-frames <count>', 'Extract only the first N frames for testing (e.g., --test-frames 100)', (value) => {
+    const parsed = parseInt(value, 10)
+    if (isNaN(parsed) || parsed <= 0) {
+      throw new Error('test-frames must be a positive number')
+    }
+    return parsed
+  })
+  .option('--timeout <minutes>', 'Override extraction timeout in minutes (default: auto-calculated based on file size)', (value) => {
+    const parsed = parseInt(value, 10)
+    if (isNaN(parsed) || parsed <= 0) {
+      throw new Error('timeout must be a positive number')
+    }
+    return parsed
+  })
   .option('-h, --help', 'Display help for convert command')
   .action(async (input: string, options: {
     output?: string;
     recursive?: boolean;
     framerate?: string;
     keepExtracted?: boolean;
+    testFrames?: number;
+    timeout?: number;
     help?: boolean;
   }) => {
     if (options.help) {
@@ -243,9 +269,16 @@ program
       }
 
       log.info(`Found ${colors.highlight(swfFiles.length.toString())} SWF file(s) to convert`)
-      log.info(`Frame rate: ${colors.highlight(options.framerate || '30')} FPS`)
+      if (options.framerate && options.framerate !== '30') {
+        log.info(`Frame rate override: ${colors.highlight(options.framerate)} FPS (will use this instead of detected rates)`)
+      } else {
+        log.info(`Frame rate: ${colors.muted('Auto-detected per file (fallback: 30 FPS)')}`)
+      }
       if (options.keepExtracted) {
         log.info('Extracted files will be kept after conversion')
+      }
+      if (options.testFrames) {
+        log.info(`${colors.highlight('TEST MODE:')} Extracting only first ${colors.highlight(options.testFrames.toString())} frames`)
       }
       console.log()
 
@@ -271,7 +304,9 @@ program
         try {
           await convertSWF(swfFile, mp4Path, {
             framerate: parseInt(options.framerate || '30'),
-            keepExtracted: options.keepExtracted || false
+            keepExtracted: options.keepExtracted || false,
+            testFrames: options.testFrames,
+            timeoutMinutes: options.timeout
           })
           
           fileStatus.completed(path.basename(swfFile), mp4Path)
